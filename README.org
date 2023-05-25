@@ -1,0 +1,39 @@
+A very basic (no ffmpeg included) docker wrapper around [[https://github.com/yt-dlp/yt-dlp][yt-dlp]]
+
+* Build
+
+Assuming =%ARCH%= is either =arm= or =x86=:
+
+#+begin_example
+  docker build -f %ARCH%/Dockerfile -t yt-dlp .
+#+end_example
+
+* Run wrapper
+
+/Notice/: Replace =%DIR%= with asbolute path to download videos into.
+
+=/usr/local/bin/yt-dlp.docker=:
+
+#+begin_example
+  #!/bin/sh
+
+  dest=%DIR%
+  exec docker run -it --rm --init -v "$dest":/workdir yt-dlp --no-cache-dir "$@"
+#+end_example
+
+By default it runs as =1000:1000= (uid:gid). Evidently, the user
+should have write perms on the destination dir. Custom uid:gid can be
+supplied with ~--user=uid:gid~ option in the wrapper above.
+
+* Usage
+
+Much like the vanilla =yt-dlp=. For example download some youtube
+video in format =18= (360p mp4):
+
+#+begin_example
+  yt-dlp.docker -f 18 'https://www.youtube.com/watch?v=tKlLYfQcu9o'
+#+end_example
+
+=sudo= might be required in case the running user is not allowed to
+use docker. For example in Ubuntu a user should be added to the
+=docker= group to use docker.
