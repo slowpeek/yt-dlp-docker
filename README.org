@@ -2,7 +2,7 @@ A very basic (no ffmpeg included) docker wrapper around [[https://github.com/yt-
 
 * Build
 
-Assuming =%ARCH%= is either =arm= or =x86=:
+Assuming =%ARCH%= is one of =amd64=, =arm64=, =armv7=:
 
 #+begin_example
   docker build -f %ARCH%/Dockerfile -t yt-dlp .
