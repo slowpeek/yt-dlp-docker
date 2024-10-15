@@ -1,5 +1,5 @@
 # runtime
-FROM python:alpine
+FROM python:3.12-alpine
 
 RUN adduser -D user
 USER user

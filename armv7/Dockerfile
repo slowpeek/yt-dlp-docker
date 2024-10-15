@@ -1,5 +1,5 @@
 # build
-FROM python:alpine as build
+FROM python:3.12-alpine as build
 
 RUN apk add musl-dev gcc g++
 RUN adduser -D user
@@ -8,7 +8,7 @@ USER user
 RUN pip install --user yt-dlp
 
 # runtime
-FROM python:alpine
+FROM python:3.12-alpine
 
 RUN adduser -D user
 USER user
