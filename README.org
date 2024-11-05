@@ -1,39 +1,47 @@
-A very basic (no ffmpeg included) docker wrapper around [[https://github.com/yt-dlp/yt-dlp][yt-dlp]]
+A basic docker wrapper around [[https://github.com/yt-dlp/yt-dlp][yt-dlp]], ffmpeg included.
 
 * Build
 
-Assuming =%ARCH%= is one of =amd64=, =arm64=, =armv7=:
+Supported archs are =amd64= and =arm64= (the ffmpeg [[https://github.com/yt-dlp/FFmpeg-Builds][builds]] by yt-dlp team are
+only that).
 
 #+begin_example
-  docker build -f %ARCH%/Dockerfile -t yt-dlp .
+  docker build -t yt-dlp .
 #+end_example
-
-* Run wrapper
-
-/Notice/: Replace =%DIR%= with asbolute path to download videos into.
-
-=/usr/local/bin/yt-dlp.docker=:
-
-#+begin_example
-  #!/bin/sh
-
-  dest=%DIR%
-  exec docker run -it --rm --init -v "$dest":/workdir yt-dlp --no-cache-dir "$@"
-#+end_example
-
-By default it runs as =1000:1000= (uid:gid). Evidently, the user
-should have write perms on the destination dir. Custom uid:gid can be
-supplied with ~--user=uid:gid~ option in the wrapper above.
 
 * Usage
 
-Much like the vanilla =yt-dlp=. For example download some youtube
-video in format =18= (360p mp4):
+Download a video in the best quality into the current dir:
 
-#+begin_example
-  yt-dlp.docker -f 18 'https://www.youtube.com/watch?v=tKlLYfQcu9o'
-#+end_example
+#+begin_src bash
+  opts=(
+      -it --rm --init
+      -v "$PWD":/workdir
+      -u $(id -u):$(id -g) -e HOME=/home/user
+  )
 
-=sudo= might be required in case the running user is not allowed to
-use docker. For example in Ubuntu a user should be added to the
-=docker= group to use docker.
+  docker run "${opts[@]}" yt-dlp 'https://www.youtube.com/watch?v=sQFXKOPJOYM'
+#+end_src
+
+If you omit the =-u .. -e ..= piece, downloaded files would be owned by
+=1000:1000=.
+
+In the command above, after the image name you can use any yt-dlp options.
+
+* yt-dlp.docker
+
+Runner for the image with such features:
+
+- auto detect your =$user_name= when run under sudo/doas
+- mount =/home/$user_name/Downloads/yt-dlp= inside the container as the workdir
+- set the output subdir to the current date
+- prepend the output filename with the upload date
+
+* yt-quick
+
+A wrapper around =yt-dlp.docker= for youtube. It would download the H264 video
+of up to the selected height (1080 if not set) along with the best AAC audio.
+
+ #+begin_example
+   Usage: yt-quick [1080|720|480|360] url1 url2 ..
+ #+end_example

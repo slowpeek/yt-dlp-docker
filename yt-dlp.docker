@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -eu
+
+SCRIPT_SELF=${BASH_SOURCE[0]##*/}
+
+bye() {
+    printf '[%s] %s\n' "$SCRIPT_SELF" "$1"
+    exit 1
+}
+
+user=$USER
+sudo=n
+
+# If root, extract some user name from SUDO_USER/DOAS_USER
+if [[ $user == root ]]; then
+    if [[ -n ${SUDO_USER:-} ]]; then
+        user=$SUDO_USER
+    elif [[ -n ${DOAS_USER:-} ]]; then
+        user=$DOAS_USER
+    else
+        bye 'You should run this script as a regular user OR with sudo/doas'
+    fi
+
+    [[ $user == root ]] && bye 'Nested sudo/doas detected'
+    sudo=y
+fi
+
+dest=/home/$user/Downloads
+[[ -d "$dest" ]] || bye "$dest does not exist"
+
+uid_gid=$(stat -c '%u:%g' "$dest")
+
+dest+=/yt-dlp
+if [[ ! -d "$dest" ]]; then
+    mkdir "$dest"
+    [[ $sudo == n ]] || chown "$uid_gid" "$dest"
+fi
+
+# DAY_EXTEND env var can shift the day end by some hours. When downloading
+# videos past midnight, it might be nice to keep them along with videos
+# downloaded earlier.
+day_extend=${DAY_EXTEND:-0}
+# Only accept 1-digit values
+[[ $day_extend == [0-9] ]] || day_extend=0
+
+subdir=$(date +'%Y-%m-%d' -d "-${day_extend} hour")
+
+opts=(
+    -it --rm --init
+    -v "$dest":/workdir
+    -u "$uid_gid"
+
+    # Alternative PYTHONPATH=/home/user/.local/lib/python3.12/site-packages is
+    # evidently not great because of the version included
+    -e HOME=/home/user
+
+    yt-dlp
+    --no-cache-dir
+    -o "$subdir/%(upload_date>%Y-%m-%d)s - %(title)s - %(id)s.%(ext)s"
+)
+
+exec docker run "${opts[@]}" "$@"

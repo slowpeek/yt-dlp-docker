@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -eu
+
+SCRIPT_SELF=${BASH_SOURCE[0]##*/}
+
+bye() {
+    printf '[%s] %s\n' "$SCRIPT_SELF" "$1"
+    exit 1
+}
+
+usage() {
+    echo "Usage: ${SCRIPT_SELF} [1080|720|480|360] url1 url2 .."
+    exit
+}
+
+is_url() {
+    [[ $1 == http?(s)://* ]]
+}
+
+(( $# )) || usage
+
+urls=()
+
+size=1080
+if [[ $1 == @(1080|720|480|360) ]]; then
+    size=$1
+else
+    is_url "$1" || bye "not size, not url: $1"
+    urls+=("$1")
+fi
+
+shift
+
+while (( $# )); do
+    is_url "$1" || bye "not url: $1"
+    urls+=("$1")
+    shift
+done
+
+(( ${#urls[@]} )) || bye 'no urls'
+
+exec yt-dlp.docker -f "bv[height<=${size}][ext=mp4][protocol^=http]+ba[ext=m4a][protocol^=http]" "${urls[@]}"
